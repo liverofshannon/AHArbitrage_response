@@ -174,7 +174,7 @@ def _fetch_stocks(a_code: str) -> str:
         f"{stock_name or a_code}\n"
         f"A股({a_code}): {a_price:.2f}\n"
         f"H股({h_code}): {h_price:.2f} HKD\n"
-        f"A/H溢价率: {premium:+.2f}%\n"
+        f"A/H溢价率: {premium:+}%\n"
         f"(汇率: {rate:.4f})"
     )
 
