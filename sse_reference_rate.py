@@ -4,8 +4,6 @@ from logger import get_logger
 
 logger = get_logger()
 
-#在上证交所获取港股通参考汇率
-
 BASE_URL = "http://www.sse.com.cn"
 HOME_URL = f"{BASE_URL}/services/hkexsc/home/"
 
@@ -15,38 +13,73 @@ HEADERS = {
 }
 
 
+def _fetch_avg(buy: float, sell: float) -> float:
+    return (buy + sell) / 2
+
+
+def _get_home_data():
+    """获取主页，返回 (exchange_path, ratios_path)"""
+    resp = requests.get(HOME_URL, headers=HEADERS, timeout=15)
+    resp.encoding = "utf-8"
+    # js_files 中的多个路径用逗号分隔
+    m = re.search(r'js_files="([^"]+)"', resp.text)
+    if not m:
+        raise ValueError("未在页面中找到 js_files")
+    paths = [p.strip() for p in m.group(1).split(",")]
+    exchange_path = ratios_path = None
+    for p in paths:
+        if "/exchange/" in p:
+            exchange_path = p
+        elif "/ratios/" in p:
+            ratios_path = p
+    return exchange_path, ratios_path
+
+
+def _fetch_js(path):
+    resp = requests.get(f"{BASE_URL}{path}", headers=HEADERS, timeout=15)
+    resp.encoding = "utf-8"
+    return resp.text
+
+
 def fetch_reference_rate():
-    """爬取上交所港股通参考汇率买入/卖出价，返回 (买入, 卖出, 均值)"""
-    # 1. 获取主页 HTML，从中提取 exchange 数据文件的路径（参考汇率）
+    """爬取上交所港股通参考汇率（买入+卖出均值）"""
     try:
-        resp = requests.get(HOME_URL, headers=HEADERS, timeout=15)
-        resp.encoding = "utf-8"
+        exchange_path, _ = _get_home_data()
+        if not exchange_path:
+            raise ValueError("未找到参考汇率数据文件路径")
 
-        match = re.search(
-            r'js_files="[^"]*?(/services/hkexsc/home/exchange/[^",]+)', resp.text
-        )
-        if not match:
-            raise ValueError("未在页面中找到 exchange 数据文件路径")
-
-        exchange_path = match.group(1)
-
-        # 2. 获取 exchange JS 数据文件（不用 session，避免 cookie 触发反爬）
-        js_resp = requests.get(
-            f"{BASE_URL}{exchange_path}", headers=HEADERS, timeout=15
-        )
-        js_resp.encoding = "utf-8"
-        js_text = js_resp.text
-
-        # 3. 从 JS 变量中提取价格（BUY_PRICE / SELL_PRICE 不带 _clear 后缀）
-        buy_match = re.search(r"BUY_PRICE\s*=\s*'\s*([\d.]+)", js_text)
-        sell_match = re.search(r"SELL_PRICE\s*=\s*'\s*([\d.]+)", js_text)
+        js_text = _fetch_js(exchange_path)
+        buy_match = re.search(r"BUY_PRICE\b\s*=\s*'\s*([\d.]+)", js_text)
+        sell_match = re.search(r"SELL_PRICE\b\s*=\s*'\s*([\d.]+)", js_text)
 
         if not buy_match or not sell_match:
-            raise ValueError("未能从数据文件中解析出买入/卖出价格")
+            raise ValueError("未能解析参考汇率买入/卖出价格")
 
-        buy_price = float(buy_match.group(1))
-        sell_price = float(sell_match.group(1))
-        avg_price = (buy_price + sell_price) / 2
-        return avg_price
+        buy = float(buy_match.group(1))
+        sell = float(sell_match.group(1))
+        return _fetch_avg(buy, sell)
     except Exception as e:
-        logger.error(e)
+        logger.error("fetch_reference_rate failed: %s", e)
+        return None
+
+
+def fetch_settlement_rate():
+    """爬取上交所港股通结算汇兑比率（买入+卖出均值）"""
+    try:
+        _, ratios_path = _get_home_data()
+        if not ratios_path:
+            raise ValueError("未找到结算汇兑比率数据文件路径")
+
+        js_text = _fetch_js(ratios_path)
+        buy_match = re.search(r"BUY_PRICE_clear\s*=\s*'\s*([\d.]+)", js_text)
+        sell_match = re.search(r"SELL_PRICE_clear\s*=\s*'\s*([\d.]+)", js_text)
+
+        if not buy_match or not sell_match:
+            raise ValueError("未能解析结算汇兑比率买入/卖出价格")
+
+        buy = float(buy_match.group(1))
+        sell = float(sell_match.group(1))
+        return _fetch_avg(buy, sell)
+    except Exception as e:
+        logger.error("fetch_settlement_rate failed: %s", e)
+        return None
