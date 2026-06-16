@@ -241,11 +241,16 @@ def _csv_content(path) -> str:
 
 def _cmd_monitor_list() -> str:
     rows = _must_read(STOCK_MAP_CSV)
-    names = [r.get("stock_name", "") for r in rows
-             if r.get("in_or_out", "").strip() == "1"]
-    if not names:
+    lines = []
+    for r in rows:
+        if r.get("in_or_out", "").strip() == "1":
+            name = r.get("stock_name", "")
+            a_code = r.get("a_stock_code", "")
+            h_code = r.get("h_stock_code", "")
+            lines.append(f"{name}：a股代码为{a_code}，h股代码为{h_code}")
+    if not lines:
         return "当前无监控股票"
-    return "\n".join(names)
+    return "\n".join(lines)
 
 
 # ============================================================

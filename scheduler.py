@@ -11,6 +11,7 @@ from apscheduler.triggers.cron import CronTrigger
 from logger import get_logger
 
 import sse_reference_rate
+from wecom_alert import send_alert
 
 logger = get_logger()
 
@@ -27,6 +28,7 @@ class ExchangeRateScheduler:
             if rate:
                 os.environ["AH_EXCHG_RATE"] = str(rate)
                 logger.info("AH_EXCHG_RATE updated: %s", rate)
+                send_alert(f"今日港股通参考汇率已更新：{rate:.4f}（1港元 = {rate:.4f}人民币）")
             else:
                 logger.error("fetch_reference_rate returned None")
         except Exception as e:
