@@ -11,7 +11,8 @@ VOLUME /app/data
 
 ENV TZ=Asia/Shanghai
 ENV AH_LOG_ROOT=/app/data/
+ENV PORT=5000
 
 EXPOSE 5000
 
-CMD ["gunicorn", "bot:app", "-b", "0.0.0.0:5000", "-w", "2"]
+CMD gunicorn bot:app -b 0.0.0.0:$PORT -w 2
