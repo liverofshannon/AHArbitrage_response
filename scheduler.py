@@ -21,7 +21,7 @@ TRIGGER_DAILY = dict(day_of_week="mon-fri")
 class ExchangeRateScheduler:
 
     def __init__(self):
-        self._scheduler = BackgroundScheduler()
+        self._scheduler = BackgroundScheduler(timezone="Asia/Shanghai")
 
     def _update_rate(self, label, fetch_fn):
         try:
