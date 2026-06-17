@@ -17,4 +17,4 @@ ENV PORT=5000
 
 EXPOSE 5000
 
-CMD gunicorn bot:app -b 0.0.0.0:$PORT -w 2
+CMD gunicorn bot:app -b 0.0.0.0:$PORT -w 1
