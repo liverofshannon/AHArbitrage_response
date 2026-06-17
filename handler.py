@@ -214,6 +214,14 @@ def _cmd_update_alarm(code: str, low: float, high: float) -> str:
     return _csv_content(ALARM_RATE_CSV)
 
 
+def _reset_all_states() -> str:
+    rows = _must_read(ALERT_STATE_CSV)
+    for r in rows:
+        r["last_state"] = "normal"
+    _write_csv(ALERT_STATE_CSV, rows, ["a_stock_code", "last_state"])
+    return "所有告警状态已重置为normal"
+
+
 def _reset_alert_state(code: str):
     rows = _must_read(ALERT_STATE_CSV)
     for r in rows:
@@ -309,6 +317,10 @@ def handle(msg: dict) -> str | None:
     if msg_type != "text":
         return None
 
+    # ---------- all states rest ----------
+    if content.lower() == "all states rest":
+        return _reset_all_states()
+
     # ---------- help ----------
     if content.lower() in ("help", "帮助", "?", "？"):
         return (
@@ -319,7 +331,8 @@ def handle(msg: dict) -> str | None:
             "4. 告警,代码       →  查是否已接入溢价监控\n"
             "5. 监控XXX         →  查看当前监控股票列表\n"
             "6. 代码,1或0       →  加入/移出监控列表（例：000333，1）\n"
-            "7. help            →  查看本说明\n"
+            "7. all states rest →  重置所有告警状态为normal\n"
+            "8. help            →  查看本说明\n"
             "（分隔符支持半角,和全角，）"
         )
 
