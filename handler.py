@@ -254,6 +254,30 @@ def _cmd_monitor_list() -> str:
 
 
 # ============================================================
+# 命令 提示,代码 和 告警,代码
+# ============================================================
+
+def _cmd_query_alarm(code: str) -> str:
+    rows = _must_read(ALARM_RATE_CSV)
+    for r in rows:
+        if r.get("a_stock_code", "").strip() == code:
+            return ",".join(r.values())
+    return f"未发现A股代码{code}对应的溢价监控配置，请先通过聊天或网页方式完成相关配置！"
+
+
+def _cmd_check_monitor(code: str) -> str:
+    rows = _must_read(STOCK_MAP_CSV)
+    for r in rows:
+        if r.get("a_stock_code", "").strip() == code:
+            name = r.get("stock_name", "")
+            if r.get("in_or_out", "").strip() == "1":
+                return f"{code} {name}已接入监控！"
+            else:
+                return f"{code} {name}未接入监控！可通过聊天或网页方式将{code} {name}接入股指信息监控！"
+    return "请确认该公司是否在A股与H股都完成上市！如完成上市请登录网页版更新总表！"
+
+
+# ============================================================
 # 命令5: 修改 in_or_out
 # ============================================================
 
@@ -291,10 +315,11 @@ def handle(msg: dict) -> str | None:
             "使用说明：\n"
             "1. 代码,下限,上限  →  更新AH溢价告警阈值（例：000333，0.02，0.08）\n"
             "2. 六位代码        →  查询A/H股价及溢价率（例：000333）\n"
-            "3. 提示XXX         →  查看当前告警阈值列表\n"
-            "4. 监控XXX         →  查看当前监控股票列表\n"
-            "5. 代码,1或0       →  加入/移出监控列表（例：000333，1）\n"
-            "6. help            →  查看本说明\n"
+            "3. 提示 / 提示,代码 →  查看告警阈值列表 / 查单个配置\n"
+            "4. 告警,代码       →  查是否已接入溢价监控\n"
+            "5. 监控XXX         →  查看当前监控股票列表\n"
+            "6. 代码,1或0       →  加入/移出监控列表（例：000333，1）\n"
+            "7. help            →  查看本说明\n"
             "（分隔符支持半角,和全角，）"
         )
 
@@ -302,8 +327,18 @@ def handle(msg: dict) -> str | None:
     content = content.replace("，", ",")
 
     try:
-        # ---------- 提示 / 提示列表 ----------
+        # ---------- 提示,代码 或 提示 ----------
         if content.startswith("提示"):
+            code = content.rsplit(",", 1)[-1].strip()
+            if code.isdigit() and len(code) == 6:
+                return _cmd_query_alarm(code)
+            return _csv_content(ALARM_RATE_CSV)
+
+        # ---------- 告警,代码 ----------
+        if content.startswith("告警"):
+            code = content.rsplit(",", 1)[-1].strip()
+            if code.isdigit() and len(code) == 6:
+                return _cmd_check_monitor(code)
             return _csv_content(ALARM_RATE_CSV)
 
         # ---------- 监控 / 监控列表 ----------
