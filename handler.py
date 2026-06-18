@@ -382,8 +382,11 @@ def handle(msg: dict) -> str | None:
                 return _cmd_check_monitor(code)
             return _csv_content(ALARM_RATE_CSV)
 
-        # ---------- 监控 / 监控列表 ----------
+        # ---------- 监控,代码 或 监控 / 监控列表 ----------
         if content.startswith("监控"):
+            code = content.rsplit(",", 1)[-1].strip()
+            if code.isdigit() and len(code) == 6:
+                return _cmd_check_monitor(code)
             return _cmd_monitor_list()
 
         # ---------- 逗号分隔的命令 ----------
