@@ -5,6 +5,7 @@
 """
 
 import os
+from zoneinfo import ZoneInfo
 
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.cron import CronTrigger
@@ -15,13 +16,14 @@ from wecom_alert import send_alert
 
 logger = get_logger()
 
-TRIGGER_DAILY = dict(day_of_week="mon-fri")
+TZ = ZoneInfo("Asia/Shanghai")
+TRIGGER_DAILY = dict(day_of_week="mon-fri", timezone=TZ)
 
 
 class ExchangeRateScheduler:
 
     def __init__(self):
-        self._scheduler = BackgroundScheduler(timezone="Asia/Shanghai")
+        self._scheduler = BackgroundScheduler(timezone=TZ)
 
     def _update_rate(self, label, fetch_fn):
         try:
