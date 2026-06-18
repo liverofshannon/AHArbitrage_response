@@ -29,6 +29,26 @@ ENCODING_AES_KEY = "8hor06JnEPmgH96d7ufqLMHC3fMeQhDf2JPrkdiX2oK"
 
 wxcpt = WXBizMsgCrypt(TOKEN, ENCODING_AES_KEY, CORP_ID)
 
+MAX_MSG_BYTES = 2000
+
+
+def _split_long(text: str):
+    """企微文本消息上限约 2048 字节，超长按行拆条"""
+    if len(text.encode("utf-8")) <= MAX_MSG_BYTES:
+        return [text]
+    chunks = []
+    cur = ""
+    for line in text.split("\n"):
+        if len((cur + "\n" + line).encode("utf-8")) > MAX_MSG_BYTES and cur:
+            chunks.append(cur)
+            cur = line
+        else:
+            cur = cur + "\n" + line if cur else line
+    if cur:
+        chunks.append(cur)
+    return chunks
+
+
 # 异步文件日志，关闭 Flask 默认控制台日志
 log = get_logger()
 logging.getLogger("flask").handlers = []
@@ -72,11 +92,14 @@ def callback():
 
     reply = handle(msg)
     if reply:
-        try:
-            result = send_text(msg.get("FromUserName", ""), reply)
-            log.info("reply sent, msgid=%s", result.get("msgid"))
-        except Exception as e:
-            log.error("reply failed: %s", e)
+        user = msg.get("FromUserName", "")
+        # 企微文本上限 2048 字节，超长自动拆条
+        for chunk in _split_long(reply):
+            try:
+                result = send_text(user, chunk)
+                log.info("reply sent, msgid=%s", result.get("msgid"))
+            except Exception as e:
+                log.error("reply failed: %s", e)
 
     return "", 200
 
