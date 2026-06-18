@@ -307,6 +307,29 @@ def _cmd_toggle_inout(code: str, flag: str) -> str:
 
 
 # ============================================================
+# 命令: ahrate
+# ============================================================
+
+def _cmd_refresh_rate() -> str:
+    from datetime import datetime, time, timezone, timedelta
+    import sse_reference_rate
+
+    TZ = timezone(timedelta(hours=8))
+    now = datetime.now(TZ)
+    # 工作日 9:00-16:10
+    if now.weekday() < 5 and time(9, 0) <= now.time() <= time(16, 10):
+        rate = sse_reference_rate.fetch_reference_rate()
+        label = "参考汇率"
+    else:
+        rate = sse_reference_rate.fetch_settlement_rate()
+        label = "结算汇兑比率"
+
+    if rate:
+        os.environ["AH_EXCHG_RATE"] = str(rate)
+        return f"今日港股通{label}已刷新：{rate:.4f}（1港元 = {rate:.4f}人民币）"
+    return f"{label}获取失败"
+
+# ============================================================
 # 主入口
 # ============================================================
 
@@ -316,6 +339,10 @@ def handle(msg: dict) -> str | None:
 
     if msg_type != "text":
         return None
+
+    # ---------- ahrate ----------
+    if content.lower() == "ahrate":
+        return _cmd_refresh_rate()
 
     # ---------- all states rest ----------
     if content.lower() == "all states rest":
@@ -332,7 +359,8 @@ def handle(msg: dict) -> str | None:
             "5. 监控XXX         →  查看当前监控股票列表\n"
             "6. 代码,1或0       →  加入/移出监控列表（例：000333，1）\n"
             "7. all states rest →  重置所有告警状态为normal\n"
-            "8. help            →  查看本说明\n"
+            "8. ahrate          →  手动刷新汇率（盘中参考/盘后结算）\n"
+            "9. help            →  查看本说明\n"
             "（分隔符支持半角,和全角，）"
         )
 

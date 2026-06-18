@@ -49,6 +49,8 @@ class ExchangeRateScheduler:
             id="settlement_rate",
         )
         self._scheduler.start()
+        # 启动时先拉一次参考汇率
+        self._update("参考汇率", sse_reference_rate.fetch_reference_rate)
         logger.info("scheduler started: reference_rate@9:24, settlement_rate@16:10 (UTC+8)")
 
     def stop(self):
