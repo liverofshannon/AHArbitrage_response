@@ -27,11 +27,7 @@ docker stop aharbitrage-response 2>/dev/null
 docker rm aharbitrage-response 2>/dev/null
 
 # 启动新容器（将 /你的数据目录 替换为实际路径）
-docker run -d \
-  --name aharbitrage-response \
-  -p 5000:5000 \
-  -v /你的数据目录:/app/data \
-  aharbitrage-response
+docker run -d --name aharbitrage-response -p 5000:5000 -v /home/harry/data:/app/data aharbitrage-response
 ```
 
 更新部署时重复上述命令即可。

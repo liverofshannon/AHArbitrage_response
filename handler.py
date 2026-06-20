@@ -326,7 +326,7 @@ def _cmd_refresh_rate() -> str:
 
     if rate:
         os.environ["AH_EXCHG_RATE"] = str(rate)
-        return f"今日港股通{label}已刷新：{rate:.4f}（1港元 = {rate:.4f}人民币）"
+        return f"[溢价回复服务] 今日港股通{label}已刷新：{rate:.4f}（1港元 = {rate:.4f}人民币）"
     return f"{label}获取失败"
 
 # ============================================================
